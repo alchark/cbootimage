@@ -847,15 +847,30 @@ void destroy_addon_list(struct addon_item_rec *addon_list)
 	}
 }
 
+#define MMC_SECONDARY_BCT_LOCATION_IN_BLOCKS	8
 static void
 find_new_journal_blk(build_image_context *context)
 {
 	u_int32_t current_blk;
 	u_int32_t max_bct_search_blks;
+	u_int32_t e;
+	nvboot_dev_type type;
 
 	assert(context);
 
-	current_blk = context->journal_blk;
+	e = context->bctlib.getdev_param(0,
+					nvbct_lib_id_dev_type,
+					&type,
+					context->bct);
+
+	/* For MMC device put BCT (journal block) in second 128K block */
+	/* This allows to put MBR at offset 0 */
+	/* Tegra BootROM is also capable to find BCT at 128K offset */
+
+	if (type == nvboot_dev_type_sdmmc)
+	  current_blk = MMC_SECONDARY_BCT_LOCATION_IN_BLOCKS;
+	else
+	  current_blk = context->journal_blk;
 
 	GET_VALUE(max_bct_search_blks, &max_bct_search_blks);
 
